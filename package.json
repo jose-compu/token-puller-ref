@@ -1,0 +1,22 @@
+{
+  "name": "erc-8187-ref",
+  "version": "1.0.0",
+  "description": "Reference implementation for ERC-8187 Token Puller",
+  "scripts": {
+    "build": "hardhat build",
+    "test": "hardhat test",
+    "clean": "hardhat clean"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox-mocha-ethers": "^3.0.7",
+    "@openzeppelin/contracts": "^5.6.1",
+    "hardhat": "^3.9.0"
+  }
+}

@@ -1,0 +1,20 @@
+node_modules/
+artifacts/
+cache/
+dist/
+coverage/
+coverage.json
+typechain-types/
+types/
+
+# Hardhat files
+.hardhat/
+soljson-*.js
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.local
