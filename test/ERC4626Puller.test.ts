@@ -69,6 +69,18 @@ describe("ERC4626Puller", () => {
       ).to.equal(0n);
     });
 
+    it("clears every tracked pull allowance", async () => {
+      const { owner, spender, other, asset, puller } = await networkHelpers.loadFixture(deployFixture);
+      const token = await asset.getAddress();
+
+      await puller.connect(owner).approvePull(token, spender.address, PULL_LIMIT);
+      await puller.connect(spender).transferPullAllowance(token, owner.address, other.address, PULL_AMOUNT);
+      await puller.connect(owner).revokeAllPulls(token);
+
+      expect(await puller.pullAllowance(token, owner.address, spender.address)).to.equal(0n);
+      expect(await puller.pullAllowance(token, owner.address, other.address)).to.equal(0n);
+    });
+
     it("should overwrite previous allowance", async () => {
       const { owner, spender, asset, puller } = await networkHelpers.loadFixture(deployFixture);
 

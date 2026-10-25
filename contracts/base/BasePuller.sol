@@ -47,6 +47,10 @@ abstract contract BasePuller is IPuller, EIP712 {
 
     mapping(address owner => uint256) private _nonces;
 
+    mapping(address token => mapping(address owner => address[])) private _spenders;
+
+    mapping(address token => mapping(address owner => mapping(address spender => uint256))) private _spenderPos;
+
     // =============================================================
     // Errors
     // =============================================================
@@ -68,8 +72,21 @@ abstract contract BasePuller is IPuller, EIP712 {
     // =============================================================
 
     function approvePull(address token, address spender, uint256 limit) external {
+        _trackSpender(token, msg.sender, spender);
         _pullAllowances[token][msg.sender][spender] = limit;
         emit PullApproval(token, msg.sender, spender, limit);
+    }
+
+    /// @notice Sets every tracked pull allowance of the caller for `token` to zero.
+    function revokeAllPulls(address token) external {
+        address[] storage list = _spenders[token][msg.sender];
+        uint256 n = list.length;
+        for (uint256 i = 0; i < n; ++i) {
+            address spender = list[i];
+            if (_pullAllowances[token][msg.sender][spender] == 0) continue;
+            _pullAllowances[token][msg.sender][spender] = 0;
+            emit PullApproval(token, msg.sender, spender, 0);
+        }
     }
 
     function pullFrom(address token, address owner, address to, uint256 amount) external {
@@ -96,6 +113,7 @@ abstract contract BasePuller is IPuller, EIP712 {
         if (amount == type(uint256).max && currentAllowance == type(uint256).max) {
             _pullAllowances[token][owner][msg.sender] = 0;
             if (toSpender != address(0)) {
+                _trackSpender(token, owner, toSpender);
                 _pullAllowances[token][owner][toSpender] = type(uint256).max;
             }
         } else {
@@ -108,6 +126,7 @@ abstract contract BasePuller is IPuller, EIP712 {
             }
 
             if (toSpender != address(0)) {
+                _trackSpender(token, owner, toSpender);
                 uint256 toAllowance = _pullAllowances[token][owner][toSpender];
                 if (toAllowance != type(uint256).max) {
                     _pullAllowances[token][owner][toSpender] = toAllowance + amount;
@@ -145,6 +164,7 @@ abstract contract BasePuller is IPuller, EIP712 {
         }
 
         _nonces[owner] = nonce + 1;
+        _trackSpender(token, owner, spender);
         _pullAllowances[token][owner][spender] = limit;
 
         emit PullApproval(token, owner, spender, limit);
@@ -203,6 +223,12 @@ abstract contract BasePuller is IPuller, EIP712 {
     // =============================================================
 
     function _sourceTokens(address token, address owner, address to, uint256 amount) internal virtual;
+
+    function _trackSpender(address token, address owner, address spender) internal {
+        if (spender == address(0) || _spenderPos[token][owner][spender] != 0) return;
+        _spenders[token][owner].push(spender);
+        _spenderPos[token][owner][spender] = _spenders[token][owner].length;
+    }
 
     // =============================================================
     // Internal: pull execution
