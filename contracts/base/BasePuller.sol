@@ -56,6 +56,7 @@ abstract contract BasePuller is IPuller, EIP712 {
     error InvalidSignature(address expected, address recovered);
     error PermitFailedAndInsufficientAllowance(uint256 available, uint256 required);
     error TransferToSelf();
+    error InfiniteAllowanceDecrease();
 
     // =============================================================
     // Constructor
@@ -70,6 +71,27 @@ abstract contract BasePuller is IPuller, EIP712 {
     function approvePull(address token, address spender, uint256 limit) external {
         _pullAllowances[token][msg.sender][spender] = limit;
         emit PullApproval(token, msg.sender, spender, limit);
+    }
+
+    /// @notice Adds `added` to the spender's allowance. An infinite allowance is left unchanged.
+    function increasePullAllowance(address token, address spender, uint256 added) external {
+        uint256 current = _pullAllowances[token][msg.sender][spender];
+        if (current == type(uint256).max || added == 0) return;
+        uint256 next = current + added;
+        _pullAllowances[token][msg.sender][spender] = next;
+        emit PullApproval(token, msg.sender, spender, next);
+    }
+
+    /// @notice Subtracts `subtracted` from the spender's allowance. An infinite allowance reverts.
+    function decreasePullAllowance(address token, address spender, uint256 subtracted) external {
+        uint256 current = _pullAllowances[token][msg.sender][spender];
+        if (current == type(uint256).max) revert InfiniteAllowanceDecrease();
+        if (subtracted > current) revert InsufficientAllowance(current, subtracted);
+        unchecked {
+            uint256 next = current - subtracted;
+            _pullAllowances[token][msg.sender][spender] = next;
+            emit PullApproval(token, msg.sender, spender, next);
+        }
     }
 
     function pullFrom(address token, address owner, address to, uint256 amount) external {

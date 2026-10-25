@@ -69,6 +69,25 @@ describe("ERC4626Puller", () => {
       ).to.equal(0n);
     });
 
+    it("increases and decreases a finite allowance", async () => {
+      const { owner, spender, asset, puller } = await networkHelpers.loadFixture(deployFixture);
+      const token = await asset.getAddress();
+
+      await puller.connect(owner).approvePull(token, spender.address, PULL_LIMIT);
+      await puller.connect(owner).increasePullAllowance(token, spender.address, PULL_AMOUNT);
+      expect(await puller.pullAllowance(token, owner.address, spender.address)).to.equal(PULL_LIMIT + PULL_AMOUNT);
+
+      await puller.connect(owner).decreasePullAllowance(token, spender.address, PULL_AMOUNT);
+      expect(await puller.pullAllowance(token, owner.address, spender.address)).to.equal(PULL_LIMIT);
+
+      await puller.connect(owner).approvePull(token, spender.address, MAX_UINT256);
+      await puller.connect(owner).increasePullAllowance(token, spender.address, PULL_AMOUNT);
+      expect(await puller.pullAllowance(token, owner.address, spender.address)).to.equal(MAX_UINT256);
+      await expect(
+        puller.connect(owner).decreasePullAllowance(token, spender.address, PULL_AMOUNT)
+      ).to.be.revertedWithCustomError(puller, "InfiniteAllowanceDecrease");
+    });
+
     it("should overwrite previous allowance", async () => {
       const { owner, spender, asset, puller } = await networkHelpers.loadFixture(deployFixture);
 
