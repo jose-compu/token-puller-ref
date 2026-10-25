@@ -114,9 +114,8 @@ interface IPuller {
     /**
      * @notice Transfers pull allowance from msg.sender to another spender.
      * @dev Must revert if msg.sender has insufficient allowance.
-     * Special case: if amount == type(uint256).max and current allowance is infinite,
-     * set msg.sender's to 0 and toSpender's to type(uint256).max.
-     * Otherwise, decrease msg.sender's and increase toSpender's.
+     * An infinite allowance can only be moved in full (`amount == type(uint256).max`).
+     * A smaller amount reverts. Otherwise, decrease msg.sender's and increase toSpender's.
      * toSpender == address(0) means renunciation (no increase).
      * Must revert if toSpender == msg.sender.
      * Must emit `TransferPullAllowance`.

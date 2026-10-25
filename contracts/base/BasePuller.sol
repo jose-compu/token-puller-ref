@@ -56,6 +56,7 @@ abstract contract BasePuller is IPuller, EIP712 {
     error InvalidSignature(address expected, address recovered);
     error PermitFailedAndInsufficientAllowance(uint256 available, uint256 required);
     error TransferToSelf();
+    error PartialInfiniteTransfer();
 
     // =============================================================
     // Constructor
@@ -93,6 +94,11 @@ abstract contract BasePuller is IPuller, EIP712 {
 
         uint256 currentAllowance = _pullAllowances[token][owner][msg.sender];
 
+        // Infinite allowance moves in full, or not at all.
+        if (currentAllowance == type(uint256).max && amount != type(uint256).max) {
+            revert PartialInfiniteTransfer();
+        }
+
         if (amount == type(uint256).max && currentAllowance == type(uint256).max) {
             _pullAllowances[token][owner][msg.sender] = 0;
             if (toSpender != address(0)) {
@@ -103,7 +109,7 @@ abstract contract BasePuller is IPuller, EIP712 {
                 revert InsufficientAllowance(currentAllowance, amount);
             }
 
-            if (currentAllowance != type(uint256).max) {
+            unchecked {
                 _pullAllowances[token][owner][msg.sender] = currentAllowance - amount;
             }
 

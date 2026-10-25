@@ -234,6 +234,30 @@ describe("ERC4626Puller", () => {
         );
     });
 
+    it("reverts when transferring less than an infinite allowance", async () => {
+      const { owner, spender, other, asset, puller } = await networkHelpers.loadFixture(deployFixture);
+
+      await puller.connect(owner).approvePull(await asset.getAddress(), spender.address, MAX_UINT256);
+
+      await expect(
+        puller.connect(spender).transferPullAllowance(
+          await asset.getAddress(),
+          owner.address,
+          other.address,
+          PULL_AMOUNT
+        )
+      ).to.be.revertedWithCustomError(puller, "PartialInfiniteTransfer");
+
+      await expect(
+        puller.connect(spender).transferPullAllowance(
+          await asset.getAddress(),
+          owner.address,
+          ZERO_ADDRESS,
+          PULL_AMOUNT
+        )
+      ).to.be.revertedWithCustomError(puller, "PartialInfiniteTransfer");
+    });
+
     it("should handle infinite allowance transfer", async () => {
       const { owner, spender, other, asset, puller } = await networkHelpers.loadFixture(deployFixture);
 
